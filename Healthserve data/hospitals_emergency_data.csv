@@ -1,0 +1,32 @@
+Zip Code,Hospital Name,Ambulance Available
+10001,Crestwood Clinic,No
+10001,Wellness Medical Institute,No
+10002,Greenwood Healthcare,Yes
+10002,Riverbend Medical Center,No
+10002,City Care Hospital,No
+10003,Clearview Hospital,Yes
+10003,Clearview Hospital,No
+10003,Clearview Hospital,No
+20001,Crestwood Clinic,Yes
+20001,Wellness Medical Institute,Yes
+20001,Lakeside Medical Center,Yes
+20002,General Hospital,No
+20002,General Hospital,Yes
+30001,City Care Hospital,Yes
+30001,Pine Valley Hospital,Yes
+30301,Pine Valley Hospital,Yes
+30301,City Care Hospital,Yes
+33101,Evergreen Health Center,No
+33101,Pine Valley Hospital,No
+60601,Greenwood Healthcare,No
+70112,Summit Hospital,Yes
+73301,Summit Hospital,No
+85001,Clearview Hospital,Yes
+90001,St. Mary's Medical Center,No
+90001,Wellness Medical Institute,Yes
+94101,Riverbend Medical Center,No
+94101,Hope Health Clinic,Yes
+94101,Wellness Medical Institute,No
+98101,Wellness Medical Institute,No
+94404,Summit Hospital,No
+94404,Clearview Hospital,Yes

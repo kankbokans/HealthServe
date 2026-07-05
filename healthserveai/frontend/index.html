@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthServeAI Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Left Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-icon">💚</span>
+                <h2>HealthServe<span>AI</span></h2>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" id="tab-comparison" onclick="switchTab('comparison')">
+                    <span class="icon">🏢</span> Hospital Comparison
+                </button>
+                <button class="nav-item" id="tab-reviews" onclick="switchTab('reviews')">
+                    <span class="icon">⭐</span> Patient Reviews
+                </button>
+                <button class="nav-item" id="tab-chat" onclick="switchTab('chat')">
+                    <span class="icon">💬</span> Chat with Healy
+                </button>
+                <button class="nav-item" id="tab-booking" onclick="switchTab('booking')">
+                    <span class="icon">📅</span> Book Appointment
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <p>System Online</p>
+                <div class="status-indicator"></div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header Banner -->
+            <header class="top-banner">
+                <div class="header-info">
+                    <h1 id="tab-title">Hospital Comparison</h1>
+                    <p id="tab-description">Analyze ratings and compare care quality metrics across healthcare facilities.</p>
+                </div>
+                <div class="header-actions" style="display: flex; align-items: center; gap: 20px;">
+                    <button id="theme-toggle" class="btn btn-secondary theme-toggle-btn" onclick="toggleTheme()" style="padding: 8px 16px; font-size: 13px;">☀️ Light Mode</button>
+                    <div class="user-profile">
+                        <div class="avatar">U</div>
+                        <span>Patient Workspace</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Tab 1: Hospital Comparison -->
+            <section class="tab-content active" id="content-comparison">
+                <div class="filter-panel card">
+                    <h3>🔍 Filter Facilities</h3>
+                    <form id="filter-hospitals-form" class="filter-form" onsubmit="loadHospitals(event)">
+                        <div class="form-group">
+                            <label for="filter-city">City</label>
+                            <input type="text" id="filter-city" placeholder="e.g. BOSTON">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-zip">ZIP Code</label>
+                            <input type="text" id="filter-zip" placeholder="e.g. 02111" maxlength="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-type">Hospital Type</label>
+                            <select id="filter-type">
+                                <option value="">All Types</option>
+                                <option value="Acute Care Hospitals">Acute Care</option>
+                                <option value="Critical Access Hospitals">Critical Access</option>
+                                <option value="Childrens">Childrens</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-rating">Overall Rating</label>
+                            <select id="filter-rating">
+                                <option value="">All Ratings</option>
+                                <option value="5">5 Stars</option>
+                                <option value="4">4 Stars</option>
+                                <option value="3">3 Stars</option>
+                                <option value="2">2 Stars</option>
+                                <option value="1">1 Star</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    </form>
+                </div>
+
+                <div class="results-table-container card">
+                    <table class="data-table" id="hospitals-table">
+                        <thead>
+                            <tr>
+                                <th>Hospital Name</th>
+                                <th>Type</th>
+                                <th>Ownership</th>
+                                <th>Overall Rating</th>
+                                <th>Emergency</th>
+                                <th>Mortality</th>
+                                <th>Safety of Care</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- JavaScript populated -->
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">Use the filter panel to load and compare hospitals.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Tab 2: Patient Reviews -->
+            <section class="tab-content" id="content-reviews">
+                <div class="filter-panel card">
+                    <h3>🔍 Filter Patient Experiences</h3>
+                    <form id="filter-reviews-form" class="filter-form" onsubmit="loadReviews(event)">
+                        <div class="form-group">
+                            <label for="filter-rev-hospital">Hospital Name</label>
+                            <input type="text" id="filter-rev-hospital" placeholder="e.g. Massachusetts General">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-rev-state">State Code</label>
+                            <input type="text" id="filter-rev-state" placeholder="e.g. MA" maxlength="2" style="text-transform: uppercase;">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    </form>
+                </div>
+
+                <div class="reviews-grid" id="reviews-cards-container">
+                    <!-- JavaScript populated cards -->
+                    <div class="card empty-state">
+                        <p class="text-muted">Use the filter panel to load patient experience ratings.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 3: AI Chat Assistant -->
+            <section class="tab-content" id="content-chat">
+                <div class="chat-container card">
+                    <div class="chat-messages" id="chat-messages-container">
+                        <div class="message assistant">
+                            <div class="message-bubble">
+                                Hello! I am Healy, your AI Health Assistant. I can help you search clinical publications, query hospital emergency guidelines, or book doctor appointments using natural language. Try asking:
+                                <br><br>
+                                <em>"What hospitals specialize in cardiology near Boston?"</em> or
+                                <br>
+                                <em>"What tests should I take for persistent headaches?"</em>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-user-input" placeholder="Type your query here..." onkeydown="if(event.key === 'Enter') sendChatMessage()">
+                        <button class="btn btn-primary btn-send" onclick="sendChatMessage()">Send ➔</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab 4: Book Appointment -->
+            <section class="tab-content" id="content-booking">
+                <div class="booking-grid">
+                    <!-- Slot Booking Form -->
+                    <div class="card booking-form-card">
+                        <h3>📅 Schedule Appointment</h3>
+                        <form id="booking-form" onsubmit="bookAppointment(event)">
+                            <div class="form-group">
+                                <label for="doctor-select">Select Doctor</label>
+                                <select id="doctor-select" required onchange="loadDoctorSlots()">
+                                    <option value="">Choose a doctor...</option>
+                                    <!-- Populated via JS -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="slot-select">Available Slots</label>
+                                <select id="slot-select" required>
+                                    <option value="">Select doctor first...</option>
+                                    <!-- Populated via JS -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="patient-name">Patient Full Name</label>
+                                <input type="text" id="patient-name" required placeholder="e.g. John Doe">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Confirm Appointment</button>
+                        </form>
+                    </div>
+
+                    <!-- Active Bookings List -->
+                    <div class="card active-bookings-card">
+                        <h3>📋 Active Appointments</h3>
+                        <div id="bookings-list-container">
+                            <p class="text-muted text-center" style="padding: 20px;">No appointments scheduled yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Reschedule Modal -->
+    <div id="reschedule-modal" class="modal">
+        <div class="modal-content card">
+            <h3>📅 Reschedule Appointment</h3>
+            <p>Select a new slot time for this appointment.</p>
+            <form id="reschedule-form" onsubmit="submitReschedule(event)">
+                <input type="hidden" id="reschedule-appt-id">
+                <input type="hidden" id="reschedule-doc-id">
+                <div class="form-group">
+                    <label for="reschedule-slot-select">Available Slots</label>
+                    <select id="reschedule-slot-select" required>
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeRescheduleModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Reschedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

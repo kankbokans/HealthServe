@@ -1,0 +1,18 @@
+# Local environment files
+.env
+
+# Virtual environments
+.venv/
+healthserveai/.venv/
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# IDE files
+.idea/
+.vscode/
+
+# Local database temp files
+*.sqlite

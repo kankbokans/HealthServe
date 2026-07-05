@@ -1,0 +1,13 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: semgrep
+        name: Semgrep Security Scan
+        entry: healthserveai/.venv/Scripts/semgrep.exe --config healthserveai/.semgrep/rules.yaml --error
+        language: system
+        types: [python]
