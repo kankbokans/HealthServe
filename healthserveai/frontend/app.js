@@ -187,7 +187,7 @@ async function sendChatMessage() {
     // Render Loading Indicator
     const loadDiv = document.createElement("div");
     loadDiv.className = "message assistant loading-msg";
-    loadDiv.innerHTML = `<div class="message-bubble">AI is typing...</div>`;
+    loadDiv.innerHTML = `<div class="message-bubble">Healy is typing...</div>`;
     chatContainer.appendChild(loadDiv);
     scrollChat();
 

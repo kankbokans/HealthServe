@@ -269,24 +269,27 @@ async def router_node(ctx: Context, node_input: types.Content) -> Event:
     if node_input and node_input.parts:
         user_msg = "".join(part.text for part in node_input.parts if part.text)
 
-    # Run the classifier LLM
-    classifier_resp = await ctx.run_node(classifier_agent, node_input=user_msg)
-
+    # Call Gemini API directly (avoiding ADK node event streaming leak)
+    from google.genai import Client
+    client = Client()
     intent = "general_query"
-    if classifier_resp:
-        if isinstance(classifier_resp, str):
-            intent_text = classifier_resp.strip().lower()
-        elif hasattr(classifier_resp, "parts") and classifier_resp.parts:
-            intent_text = "".join(part.text for part in classifier_resp.parts if part.text).strip().lower()
-        else:
-            intent_text = str(classifier_resp).strip().lower()
-
+    try:
+        response = client.models.generate_content(
+            model="gemini-flash-latest",
+            contents=user_msg,
+            config=types.GenerateContentConfig(
+                system_instruction="Classify the user input prompt. Answer with ONLY one of the exact strings: 'medical_query', 'hospital_query', 'booking_query', 'general_query'. Do not output any other text or reasoning."
+            )
+        )
+        intent_text = response.text.strip().lower() if response.text else "general_query"
         if "medical" in intent_text:
             intent = "medical_query"
         elif "hospital" in intent_text:
             intent = "hospital_query"
         elif "booking" in intent_text or "appointment" in intent_text:
             intent = "booking_query"
+    except Exception as e:
+        logger.error(f"Intent classification failed: {e}")
 
     logger.info(f"Classified intent: {intent} for message: {user_msg}")
     return Event(output=node_input, route=intent)
