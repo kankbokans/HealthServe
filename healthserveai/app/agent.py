@@ -35,7 +35,7 @@ except Exception:
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or _project_id
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION") or "us-east1"
-MODEL_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/gemini-1.5-flash-002"
+MODEL_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/gemini-2.5-flash"
 
 logger = logging.getLogger(__name__)
 
@@ -342,7 +342,7 @@ async def router_node(ctx: Context, node_input: types.Content) -> Event:
     intent = "general_query"
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash-002",
+            model=MODEL_ID,
             contents=user_msg,
             config=types.GenerateContentConfig(
                 system_instruction="Classify the user input prompt. Answer with ONLY one of the exact strings: 'medical_query', 'hospital_query', 'booking_query', 'general_query'. Do not output any other text or reasoning."

@@ -105,3 +105,52 @@ Run the complete unit and query integration test suite using `pytest`:
 ```bash
 .venv\Scripts\pytest.exe tests/unit
 ```
+
+---
+
+## 🌐 Cloud Deployment
+
+The application is deployed in a hybrid serverless architecture on Google Cloud Platform:
+1. **Interactive Frontend & API Monolith**: Deployed on **Cloud Run** (`us-east1`) to serve the static patient dashboard and handle database operations.
+2. **AI Agent Endpoint**: Deployed on **Vertex AI Agent Runtime** (Reasoning Engine) for enterprise gRPC/HTTP API execution.
+
+### Live URL
+- **Production Dashboard**: [https://healthserveai-899449348055.us-east1.run.app](https://healthserveai-899449348055.us-east1.run.app)
+
+### 1. Database IAM Configuration
+Because the backend uses Google Cloud IAM database authentication (`"autoIamAuthn": True`), you must register the runtime service accounts as database users in MySQL:
+```bash
+# Register Cloud Run Default Service Account
+gcloud sql users create 899449348055-compute@developer.gserviceaccount.com \
+    --instance=healthserveai --type=CLOUD_IAM_SERVICE_ACCOUNT --project=gen-lang-client-0825174628
+
+# Register Agent Runtime Platform Service Account
+gcloud sql users create service-899449348055@gcp-sa-aiplatform-re.iam.gserviceaccount.com \
+    --instance=healthserveai --type=CLOUD_IAM_SERVICE_ACCOUNT --project=gen-lang-client-0825174628
+```
+
+### 2. Vertex AI API Integration
+To allow the ADK framework and custom nodes to query Gemini models via IAM in Cloud Run without requiring API keys, set the following environment variables:
+- `GOOGLE_GENAI_USE_VERTEXAI=1` (Instructs the GenAI client to use Vertex AI)
+- `GOOGLE_CLOUD_PROJECT=gen-lang-client-0825174628`
+- `GOOGLE_CLOUD_LOCATION=us-east1`
+
+All specialist agent models resolve dynamically to:
+`projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/gemini-1.5-flash-002`
+
+### 3. Deploying to Cloud Run
+To manually rebuild and deploy the monolith:
+```bash
+gcloud run deploy healthserveai \
+    --project=gen-lang-client-0825174628 \
+    --region=us-east1 \
+    --source=. \
+    --memory=4Gi \
+    --cpu=1 \
+    --min-instances=1 \
+    --max-instances=10 \
+    --concurrency=8 \
+    --allow-unauthenticated \
+    --no-cpu-throttling \
+    --update-env-vars AGENT_VERSION=0.1.0,APP_URL=https://healthserveai-899449348055.us-east1.run.app,GOOGLE_GENAI_USE_VERTEXAI=1,GOOGLE_CLOUD_PROJECT=gen-lang-client-0825174628,GOOGLE_CLOUD_LOCATION=us-east1
+```
