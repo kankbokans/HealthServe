@@ -1,11 +1,11 @@
 <mxfile host="Electron" agent="Mozilla/5.0">
   <diagram id="system-architecture" name="HealthServeAI Architecture">
-    <mxGraphModel dx="1500" dy="696" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1182" dy="696" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" value="Client Web UI&lt;br&gt;(Sidebar Navigation&lt;br&gt;&amp;amp; Filter Dashboards)" vertex="1">
-          <mxGeometry height="90" width="160" x="40" y="240" as="geometry" />
+          <mxGeometry height="90" width="160" x="20" y="240" as="geometry" />
         </mxCell>
         <mxCell id="3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1" value="FastAPI Backend Server&lt;br&gt;&amp;amp; Agent Runtime" vertex="1">
           <mxGeometry height="90" width="180" x="290" y="240" as="geometry" />

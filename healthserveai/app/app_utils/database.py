@@ -125,11 +125,18 @@ class DatabaseClient:
         query += " GROUP BY `Hospital Name`, `City`, `State`, `Patient experience national comparison`, `Safety of care national comparison`, `Readmission national comparison`, `Mortality national comparison` LIMIT 50;"
         return self._execute_sql(query)
 
-    def get_diagnostics(self, test_name: str = None) -> list[dict]:
-        """Fetches diagnostic tests and their providers."""
-        query = "SELECT `Hospital Name`, `Diagnostic Test`, `Health Package`, `Preparation Instructions` FROM Hospital_Information_with_Lab_Tests WHERE `Diagnostic Test` IS NOT NULL AND `Diagnostic Test` != ''"
+    def get_diagnostics(self, test_name: str = None, city: str = None, state: str = None, zip_code: str = None) -> list[dict]:
+        """Fetches diagnostic tests and their providers with location filtering."""
+        query = "SELECT `Hospital Name`, `City`, `State`, `ZIP Code`, `Diagnostic Test`, `Health Package`, `Preparation Instructions` FROM Hospital_Information_with_Lab_Tests WHERE `Diagnostic Test` IS NOT NULL AND `Diagnostic Test` != ''"
         if test_name:
-            query += f" AND `Diagnostic Test` LIKE '%{self.sanitize_str(test_name)}%'"
+            clean_term = self.sanitize_str(test_name)
+            query += f" AND (`Diagnostic Test` LIKE '%{clean_term}%' OR `Health Package` LIKE '%{clean_term}%')"
+        if city:
+            query += f" AND `City` = '{self.sanitize_str(city)}'"
+        if state:
+            query += f" AND `State` = '{self.sanitize_str(state)}'"
+        if zip_code:
+            query += f" AND `ZIP Code` = '{self.sanitize_str(zip_code)}'"
         query += " LIMIT 50;"
         return self._execute_sql(query)
 

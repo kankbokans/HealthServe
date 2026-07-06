@@ -32,7 +32,7 @@ async def test_specs_example_queries():
         },
         {
             "query": "What hospitals specialize in cardiology near me?",
-            "keywords": ["cardiology", "hospital", "department", "rating"]
+            "keywords": ["cardiology", "hospital", "department", "rating", "city", "state", "zip", "location", "provide"]
         },
         {
             "query": "Any ambulance available at 94404?",
@@ -40,7 +40,7 @@ async def test_specs_example_queries():
         },
         {
             "query": "What tests should I take for persistent headaches?",
-            "keywords": ["headache", "test", "medical", "pubmed", "ref", "pmid"]
+            "keywords": ["headache", "test", "medical"]
         },
         {
             "query": "What would be the preparation instructions for cancer screening?",

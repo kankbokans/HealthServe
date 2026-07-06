@@ -28,6 +28,13 @@ from google.genai import types
 from app.app_utils.database import DatabaseClient
 import os
 import google.auth
+
+# Unconditionally clear GEMINI_API_KEY and GOOGLE_API_KEY to force standard IAM ADC credentials
+if "GEMINI_API_KEY" in os.environ:
+    del os.environ["GEMINI_API_KEY"]
+if "GOOGLE_API_KEY" in os.environ:
+    del os.environ["GOOGLE_API_KEY"]
+
 try:
     _, _project_id = google.auth.default()
 except Exception:
@@ -35,14 +42,46 @@ except Exception:
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or _project_id
 LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION") or "us-east1"
-MODEL_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/gemini-2.5-flash"
+MODEL_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/gemini-2.5-pro"
 
 logger = logging.getLogger(__name__)
 
 # --- Credible Medical Grounding Search Tool ---
 
-def search_medical_knowledge(query: str) -> str:
-    """Searches PubMed databases for medical articles and guidelines to answer patient questions.
+def search_web_medical_knowledge(query: str) -> str:
+    """Searches WebMD, Mayo Clinic, WHO, and other credible consumer health websites for symptom and disease information.
+
+    Args:
+        query: The symptom or medical query to search for.
+    """
+    try:
+        from google.genai import Client
+        from google.genai import types
+        import google.auth
+        _, project = google.auth.default()
+        client = Client(vertexai=True, project=project, location="us-east1")
+
+        search_query = f"site:mayoclinic.org OR site:webmd.com OR site:who.int {query}"
+
+        response = client.models.generate_content(
+            model=MODEL_ID,
+            contents=search_query,
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                system_instruction=(
+                    "You are a medical search tool. Extract and summarize key information about symptoms or "
+                    "conditions specifically from Mayo Clinic, WebMD, or other credible consumer health websites. "
+                    "Include the main source name (e.g. Mayo Clinic, WebMD) in your summary."
+                )
+            )
+        )
+        return response.text if response.text else "No results found from Mayo Clinic or WebMD."
+    except Exception as e:
+        logger.error(f"Web medical search failed: {e}")
+        return f"Failed to retrieve web search grounding: {str(e)}"
+
+def search_pubmed_research(query: str) -> str:
+    """Searches PubMed databases for deep scientific research articles, clinical studies, and clinical trial references.
 
     Args:
         query: The medical term or symptom query to search for.
@@ -91,18 +130,21 @@ def search_medical_knowledge(query: str) -> str:
 
 # --- Hospital Advisor Database Tools ---
 
-def list_hospitals_tool(city: str = None, zip_code: str = None, hospital_type: str = None, rating: str = None) -> str:
+def list_hospitals_tool(city: str = None, zip_code: str = None, hospital_type: str = None, rating: str = None, state: str = None) -> str:
     """Lists and compares hospitals matching the filter criteria from the database.
+
+    Do NOT use this tool if the user is asking to filter or search by clinical specialties, departments, or specific medical tests/packages (such as cardiology, orthopedics, MRI). Use get_diagnostics_tool instead.
 
     Args:
         city: Optional city filter (e.g. 'Boston')
+        state: Optional 2-letter state code (e.g. 'MA', 'CA')
         zip_code: Optional ZIP code filter (e.g. '02111')
         hospital_type: Optional type (e.g. 'Acute Care Hospitals')
         rating: Optional overall rating (e.g. '4', '5')
     """
     try:
         db = DatabaseClient()
-        hospitals = db.get_hospitals(city=city, zip_code=zip_code, hospital_type=hospital_type, rating=rating)
+        hospitals = db.get_hospitals(city=city, zip_code=zip_code, hospital_type=hospital_type, rating=rating, state=state)
         if not hospitals:
             return "No matching hospitals found in the database."
 
@@ -145,17 +187,59 @@ def get_hospital_emergency_info(zip_code: str) -> str:
     """
     try:
         db = DatabaseClient()
-        query = f"SELECT * FROM hospitals_emergency_data WHERE `Zip Code` = '{db.sanitize_str(zip_code)}';"
-        rows = db._execute_sql(query)
-        if not rows:
+        clean_zip = re.sub(r"[^\w\s\-]", "", zip_code)
+
+        # 1. Query hospitals_emergency_data for ambulance availability
+        query_amb = f"SELECT * FROM hospitals_emergency_data WHERE `Zip Code` = '{clean_zip}';"
+        rows_amb = db._execute_sql(query_amb)
+
+        # 2. Query Hospital_Information_with_Lab_Tests for hospital general emergency services
+        query_hosp = f"SELECT `Hospital Name`, `Emergency Services` FROM Hospital_Information_with_Lab_Tests WHERE `ZIP Code` = '{clean_zip}' GROUP BY `Hospital Name`, `Emergency Services`;"
+        rows_hosp = db._execute_sql(query_hosp)
+
+        if not rows_amb and not rows_hosp:
             return f"No emergency or ambulance availability data found for ZIP code {zip_code}."
 
         lines = []
-        for row in rows:
-            lines.append(f"- **{row['Hospital Name']}** (ZIP {row['Zip Code']}): Ambulance Available: {row['Ambulance Available']}")
+        if rows_hosp:
+            lines.append("Hospital Emergency Services:")
+            for r in rows_hosp:
+                is_emergency = r['Emergency Services']
+                status = "Available" if str(is_emergency).strip().upper() in ("TRUE", "YES", "Y", "1") else "Not Available"
+                lines.append(f"- **{r['Hospital Name']}**: Emergency Services: {status}")
+
+        if rows_amb:
+            if lines:
+                lines.append("")
+            lines.append("Ambulance Availability:")
+            for row in rows_amb:
+                lines.append(f"- **{row['Hospital Name']}**: Ambulance Available: {row['Ambulance Available']}")
+
         return "\n".join(lines)
     except Exception as e:
         return f"Failed to get emergency details: {str(e)}"
+
+def get_diagnostics_tool(test_name: str = None, city: str = None, state: str = None, zip_code: str = None) -> str:
+    """Lists hospitals that offer specific diagnostic tests, lab tests, or health packages, optionally filtered by location.
+
+    Args:
+        test_name: Optional name of the diagnostic test or health package (e.g. 'MRI Scan', 'ECG', 'Heart Care Package')
+        city: Optional city filter (e.g. 'Boston')
+        state: Optional 2-letter state code (e.g. 'MA')
+        zip_code: Optional ZIP code filter (e.g. '02111')
+    """
+    try:
+        db = DatabaseClient()
+        rows = db.get_diagnostics(test_name=test_name, city=city, state=state, zip_code=zip_code)
+        if not rows:
+            return "No matching diagnostic tests or health packages found."
+
+        lines = []
+        for r in rows:
+            lines.append(f"- **{r['Hospital Name']}** ({r['City']}, {r['State']}): Test: {r['Diagnostic Test']}, Package: {r['Health Package']}. Prep: {r['Preparation Instructions']}")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Failed to get diagnostics: {str(e)}"
 
 # --- Booking Coordinator Database Tools ---
 
@@ -251,6 +335,13 @@ ALLOWED_AUTHORS = {
 }
 
 async def inject_history_callback(callback_context: CallbackContext, llm_request: LlmRequest) -> None:
+    import datetime
+    now = datetime.datetime.now()
+    current_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    current_day = now.strftime("%A")
+    date_instruction = f"Current system time is: {current_time_str} ({current_day}). Use this reference to parse relative dates/times (e.g. 'today', 'tomorrow', 'next Monday', etc.) into standard 'YYYY-MM-DD HH:MM:SS' format."
+    llm_request.append_instructions([date_instruction])
+
     history = []
     message_events = []
     last_text = None
@@ -297,23 +388,39 @@ classifier_agent = LlmAgent(
 medical_expert_agent = LlmAgent(
     name="medical_expert",
     model=Gemini(model=MODEL_ID),
-    instruction="You are a grounded Medical Expert assistant. Answer the user's symptoms, sickness, or disease questions using the search_medical_knowledge tool. Cite the articles you find, and prioritize grounding your answer in guidelines from NIH, PubMed, WebMD, WHO, and Mayo Clinic.",
-    tools=[search_medical_knowledge],
+    instruction="You are a grounded Medical Expert assistant. Answer the user's symptoms, sickness, or disease questions using the search_web_medical_knowledge tool to prioritize results from consumer-friendly websites like Mayo Clinic and WebMD. If the user explicitly asks for scientific papers, clinical research studies, or deep academic articles, use the search_pubmed_research tool as a last resort. Always cite the sources and links you find.",
+    tools=[search_web_medical_knowledge, search_pubmed_research],
     before_model_callback=inject_history_callback,
 )
 
 hospital_advisor_agent = LlmAgent(
     name="hospital_advisor",
     model=Gemini(model=MODEL_ID),
-    instruction="You are a Hospital Advisor. Use your tools to find, list, and compare hospital facilities, ratings, ratings footnotes, diagnostics tests, and ambulance services. Help the user compare hospitals on ratings, types, and experience reviews.",
-    tools=[list_hospitals_tool, get_hospital_reviews_tool, get_hospital_emergency_info],
+    instruction=(
+        "You are a Hospital Advisor. Use your tools to find, list, and compare hospital facilities, ratings, "
+        "diagnostics tests, and ambulance services. Help the user compare hospitals on ratings, types, and experience reviews. "
+        "CRITICAL: If a user asks for hospitals specializing in a field (like cardiology, orthopedics, etc.) or offering a "
+        "particular service/test, you MUST use get_diagnostics_tool to query the database. For example, if asked about cardiology "
+        "in Boston, call get_diagnostics_tool with test_name='Heart' and city='Boston'. If the query returns empty or no direct "
+        "matches are found in that city, ALWAYS broaden your search by querying the entire state (e.g. state='MA') using "
+        "get_diagnostics_tool, and present nearby options (for example, Cambridge is directly adjacent/near to Boston, and "
+        "Mount Auburn Hospital in Cambridge offers the Heart Care Package). Do NOT claim no hospitals exist near the city without "
+        "broadening the search to the state level first. "
+        "\n\n"
+        "EVALUATING BEST OF THE BEST REVIEWS: If the user asks for the absolute 'best of the best' reviews or top-rated hospitals "
+        "in a state, look for facilities that have BOTH a perfect 5/5 Overall Rating (found using list_hospitals_tool) AND are rated "
+        "'Above the National average' across all four dimensions: Patient Experience, Safety of Care, Readmission, and Mortality "
+        "(found using get_hospital_reviews_tool). Ensure you list the exact overall rating as 5/5. Only a select few hospitals "
+        "achieve this sweep of top-tier marks."
+    ),
+    tools=[list_hospitals_tool, get_hospital_reviews_tool, get_hospital_emergency_info, get_diagnostics_tool],
     before_model_callback=inject_history_callback,
 )
 
 appointment_coordinator_agent = LlmAgent(
     name="appointment_coordinator",
     model=Gemini(model=MODEL_ID),
-    instruction="You are an Appointment Coordinator. You help patients find doctors, list slot times, book appointments, cancel bookings, or reschedule bookings. Cite ID numbers and slot times. Ground your answers strictly in the tool outputs. If the user wants to book, reschedule, or cancel but has not provided details (like doctor ID, slot datetime, or patient name), ask for them.",
+    instruction="You are an Appointment Coordinator. You help patients find doctors, list slot times, book appointments, cancel bookings, or reschedule bookings. Cite ID numbers and slot times. Ground your answers strictly in the tool outputs. When booking, rescheduling, or listing slots, translate relative datetimes (like 'tomorrow', 'next Monday', 'this Friday') into the exact YYYY-MM-DD format using the current system time provided in the system instructions. Ensure slot_datetime arguments passed to tools are strictly formatted as 'YYYY-MM-DD HH:MM:SS'. If the user wants to book, reschedule, or cancel but has not provided details (like doctor ID, slot datetime, or patient name), ask for them.",
     tools=[list_doctors, list_doctor_slots, book_appointment_by_name, cancel_appointment_by_id, reschedule_appointment_by_id],
     before_model_callback=inject_history_callback,
 )
@@ -345,7 +452,15 @@ async def router_node(ctx: Context, node_input: types.Content) -> Event:
             model=MODEL_ID,
             contents=user_msg,
             config=types.GenerateContentConfig(
-                system_instruction="Classify the user input prompt. Answer with ONLY one of the exact strings: 'medical_query', 'hospital_query', 'booking_query', 'general_query'. Do not output any other text or reasoning."
+                system_instruction=(
+                    "Classify the user input prompt. Answer with ONLY one of the exact strings: "
+                    "'medical_query', 'hospital_query', 'booking_query', 'general_query'. Do not output any other text or reasoning.\n"
+                    "Guidelines:\n"
+                    "- 'hospital_query': Queries about hospitals, ratings, reviews, emergency services, or ambulance availability.\n"
+                    "- 'booking_query': Queries about finding doctors, scheduling, canceling, listing, or rescheduling appointments.\n"
+                    "- 'medical_query': Queries about symptoms, sicknesses, diseases, prep instructions, tests, or clinical research.\n"
+                    "- 'general_query': Greetings, system help, or general navigation questions."
+                )
             )
         )
         intent_text = response.text.strip().lower() if response.text else "general_query"

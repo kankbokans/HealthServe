@@ -1,5 +1,5 @@
 // Session setup for AI chat
-const sessionId = generateUUID();
+let sessionId = generateUUID();
 let activeBookings = [];
 
 // Initialize application on load
@@ -480,4 +480,30 @@ function formatMarkdown(text) {
         .replace(/`(.*?)`/g, "<code>$1</code>")
         .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" style="color: #10b981; text-decoration: underline;">$1</a>');
     return formatted;
+}
+
+function resetChatSession() {
+    sessionId = generateUUID();
+    const chatContainer = document.getElementById("chat-messages-container");
+    chatContainer.innerHTML = `
+        <div class="message assistant">
+            <div class="message-bubble">
+                Hello! I am Healy, your AI Health Assistant. I have reset our conversation history. How can I help you today?
+                <br><br>
+                Try asking:
+                <br><br>
+                <ul style="margin-left: 20px; line-height: 1.6;">
+                    <li><em>"What hospitals specialize in cardiology near Boston?"</em></li>
+                    <li><em>"What tests should I take for persistent headaches?"</em></li>
+                    <li><em>"Find available Orthopedics doctors for this week."</em></li>
+                    <li><em>"Is there an emergency ambulance service at hospital INOVA Fairfax?"</em></li>
+                    <li><em>"Show me reviews and ratings for Massachusetts General Hospital."</em></li>
+                    <li><em>"What are the preparation guidelines for a colonoscopy?"</em></li>
+                    <li><em>"Schedule an appointment with Dr. Lee for dermatology on 2026-07-15 at 10:00 AM."</em></li>
+                </ul>
+            </div>
+        </div>
+    `;
+    const input = document.getElementById("chat-user-input");
+    if (input) input.value = "";
 }
