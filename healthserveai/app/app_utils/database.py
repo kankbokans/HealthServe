@@ -155,7 +155,7 @@ class DatabaseClient:
         """Lists active available slots for a specific doctor."""
         # Convert doctor_id to int to assert safety
         doc_id = int(doctor_id)
-        query = f"SELECT id, slot_datetime FROM doctors_slot_data WHERE doctor_id = {doc_id} AND is_available = 1 ORDER BY slot_datetime ASC;"
+        query = f"SELECT id, slot_datetime FROM doctors_slot_data WHERE doctor_id = {doc_id} AND is_available = 1 AND slot_datetime > NOW() ORDER BY slot_datetime ASC;"
         return self._execute_sql(query)
 
     def book_appointment(self, doctor_id: int, slot_datetime: str, patient_name: str) -> dict:
@@ -167,7 +167,7 @@ class DatabaseClient:
             raise ValueError("Invalid datetime format. Expected 'YYYY-MM-DD HH:MM:SS'")
 
         # Check if the slot is available
-        check_query = f"SELECT id FROM doctors_slot_data WHERE doctor_id = {doc_id} AND slot_datetime = '{slot_datetime}' AND is_available = 1;"
+        check_query = f"SELECT id FROM doctors_slot_data WHERE doctor_id = {doc_id} AND slot_datetime = '{slot_datetime}' AND is_available = 1 AND slot_datetime > NOW();"
         available_slots = self._execute_sql(check_query)
         if not available_slots:
             return {"success": False, "message": "Selected slot is not available or already booked."}
@@ -230,7 +230,7 @@ class DatabaseClient:
 
         # Verify new slot is available (unless it's the exact same slot we are already occupying)
         if old_slot_dt != new_slot_datetime:
-            check_query = f"SELECT id FROM doctors_slot_data WHERE doctor_id = {doc_id} AND slot_datetime = '{new_slot_datetime}' AND is_available = 1;"
+            check_query = f"SELECT id FROM doctors_slot_data WHERE doctor_id = {doc_id} AND slot_datetime = '{new_slot_datetime}' AND is_available = 1 AND slot_datetime > NOW();"
             new_available = self._execute_sql(check_query)
             if not new_available:
                 return {"success": False, "message": "The selected new slot is not available."}

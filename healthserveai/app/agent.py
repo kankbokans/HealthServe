@@ -326,11 +326,13 @@ async def router_node(ctx: Context, node_input: types.Content) -> Event:
 
     # Call Gemini API directly (avoiding ADK node event streaming leak)
     from google.genai import Client
-    client = Client()
+    import google.auth
+    _, project = google.auth.default()
+    client = Client(vertexai=True, project=project, location="us-east1")
     intent = "general_query"
     try:
         response = client.models.generate_content(
-            model="gemini-flash-latest",
+            model="gemini-1.5-flash-002",
             contents=user_msg,
             config=types.GenerateContentConfig(
                 system_instruction="Classify the user input prompt. Answer with ONLY one of the exact strings: 'medical_query', 'hospital_query', 'booking_query', 'general_query'. Do not output any other text or reasoning."
