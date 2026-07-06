@@ -26,6 +26,16 @@ from google.adk.models.llm_request import LlmRequest
 from google.genai import types
 
 from app.app_utils.database import DatabaseClient
+import os
+import google.auth
+try:
+    _, _project_id = google.auth.default()
+except Exception:
+    _project_id = "gen-lang-client-0825174628"
+
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or _project_id
+LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION") or "us-east1"
+MODEL_ID = f"projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/gemini-1.5-flash-002"
 
 logger = logging.getLogger(__name__)
 
@@ -280,13 +290,13 @@ async def inject_history_callback(callback_context: CallbackContext, llm_request
 
 classifier_agent = LlmAgent(
     name="classifier",
-    model=Gemini(model="gemini-flash-latest"),
+    model=Gemini(model=MODEL_ID),
     instruction="Classify the user input prompt. Answer with ONLY one of the exact strings: 'medical_query', 'hospital_query', 'booking_query', 'general_query'. Do not output any other text or reasoning.",
 )
 
 medical_expert_agent = LlmAgent(
     name="medical_expert",
-    model=Gemini(model="gemini-flash-latest"),
+    model=Gemini(model=MODEL_ID),
     instruction="You are a grounded Medical Expert assistant. Answer the user's symptoms, sickness, or disease questions using the search_medical_knowledge tool. Cite the articles you find, and prioritize grounding your answer in guidelines from NIH, PubMed, WebMD, WHO, and Mayo Clinic.",
     tools=[search_medical_knowledge],
     before_model_callback=inject_history_callback,
@@ -294,7 +304,7 @@ medical_expert_agent = LlmAgent(
 
 hospital_advisor_agent = LlmAgent(
     name="hospital_advisor",
-    model=Gemini(model="gemini-flash-latest"),
+    model=Gemini(model=MODEL_ID),
     instruction="You are a Hospital Advisor. Use your tools to find, list, and compare hospital facilities, ratings, ratings footnotes, diagnostics tests, and ambulance services. Help the user compare hospitals on ratings, types, and experience reviews.",
     tools=[list_hospitals_tool, get_hospital_reviews_tool, get_hospital_emergency_info],
     before_model_callback=inject_history_callback,
@@ -302,7 +312,7 @@ hospital_advisor_agent = LlmAgent(
 
 appointment_coordinator_agent = LlmAgent(
     name="appointment_coordinator",
-    model=Gemini(model="gemini-flash-latest"),
+    model=Gemini(model=MODEL_ID),
     instruction="You are an Appointment Coordinator. You help patients find doctors, list slot times, book appointments, cancel bookings, or reschedule bookings. Cite ID numbers and slot times. Ground your answers strictly in the tool outputs. If the user wants to book, reschedule, or cancel but has not provided details (like doctor ID, slot datetime, or patient name), ask for them.",
     tools=[list_doctors, list_doctor_slots, book_appointment_by_name, cancel_appointment_by_id, reschedule_appointment_by_id],
     before_model_callback=inject_history_callback,
@@ -310,7 +320,7 @@ appointment_coordinator_agent = LlmAgent(
 
 general_agent = LlmAgent(
     name="general_agent",
-    model=Gemini(model="gemini-flash-latest"),
+    model=Gemini(model=MODEL_ID),
     instruction="You are Healy, a friendly HealthServeAI assistant. Ground your answer in guiding the user on how they can navigate the system. Introduce yourself as Healy and mention they can compare hospitals, read patient reviews, chat about symptoms, and book doctor appointments using the tabs on the left.",
     before_model_callback=inject_history_callback,
 )
