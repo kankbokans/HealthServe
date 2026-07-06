@@ -1,17 +1,38 @@
 {
   "eval_cases": [
     {
-      "eval_case_id": "greeting",
+      "eval_case_id": "dermatology_consultation",
       "prompt": {
         "role": "user",
-        "parts": [{"text": "Hello, what can you help me with?"}]
+        "parts": [{"text": "Find available doctors for a dermatology consultation this week."}]
       }
     },
     {
-      "eval_case_id": "weather_query",
+      "eval_case_id": "cardiology_specialty_boston",
       "prompt": {
         "role": "user",
-        "parts": [{"text": "What's the weather like in San Francisco?"}]
+        "parts": [{"text": "What hospitals specialize in cardiology near Boston?"}]
+      }
+    },
+    {
+      "eval_case_id": "ambulance_availability_zip",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "Any ambulance available at 94404?"}]
+      }
+    },
+    {
+      "eval_case_id": "headache_medical_query",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "What tests should I take for persistent headaches?"}]
+      }
+    },
+    {
+      "eval_case_id": "cancer_screening_prep",
+      "prompt": {
+        "role": "user",
+        "parts": [{"text": "What would be the preparation instructions for cancer screening?"}]
       }
     }
   ]
