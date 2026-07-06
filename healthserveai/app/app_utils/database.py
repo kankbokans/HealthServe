@@ -212,7 +212,7 @@ class DatabaseClient:
 
         return {"success": True, "message": "Appointment cancelled successfully."}
 
-    def update_appointment(self, appointment_id: int, new_slot_datetime: str) -> dict:
+    def update_appointment(self, appointment_id: int, new_slot_datetime: str, patient_name: str = None) -> dict:
         """Reschedules an appointment to a new slot."""
         appt_id = int(appointment_id)
 
@@ -227,22 +227,27 @@ class DatabaseClient:
 
         doc_id = appt[0]["doctor_id"]
         old_slot_dt = appt[0]["slot_datetime"]
-        patient_name = appt[0]["patient_name"]
 
-        # Verify new slot is available
-        check_query = f"SELECT id FROM doctors_slot_data WHERE doctor_id = {doc_id} AND slot_datetime = '{new_slot_datetime}' AND is_available = 1;"
-        new_available = self._execute_sql(check_query)
-        if not new_available:
-            return {"success": False, "message": "The selected new slot is not available."}
+        # Verify new slot is available (unless it's the exact same slot we are already occupying)
+        if old_slot_dt != new_slot_datetime:
+            check_query = f"SELECT id FROM doctors_slot_data WHERE doctor_id = {doc_id} AND slot_datetime = '{new_slot_datetime}' AND is_available = 1;"
+            new_available = self._execute_sql(check_query)
+            if not new_available:
+                return {"success": False, "message": "The selected new slot is not available."}
 
         # Update appointment, release old slot, occupy new slot
-        update_appt = f"UPDATE appointments SET slot_datetime = '{new_slot_datetime}' WHERE id = {appt_id};"
+        if patient_name:
+            update_appt = f"UPDATE appointments SET slot_datetime = '{new_slot_datetime}', patient_name = '{self.sanitize_str(patient_name)}' WHERE id = {appt_id};"
+        else:
+            update_appt = f"UPDATE appointments SET slot_datetime = '{new_slot_datetime}' WHERE id = {appt_id};"
         self._execute_sql(update_appt)
 
-        release_old = f"UPDATE doctors_slot_data SET is_available = 1 WHERE doctor_id = {doc_id} AND slot_datetime = '{old_slot_dt}';"
-        self._execute_sql(release_old)
+        # Release and occupy slots only if the datetime actually changed
+        if old_slot_dt != new_slot_datetime:
+            release_old = f"UPDATE doctors_slot_data SET is_available = 1 WHERE doctor_id = {doc_id} AND slot_datetime = '{old_slot_dt}';"
+            self._execute_sql(release_old)
 
-        occupy_new = f"UPDATE doctors_slot_data SET is_available = 0 WHERE doctor_id = {doc_id} AND slot_datetime = '{new_slot_datetime}';"
-        self._execute_sql(occupy_new)
+            occupy_new = f"UPDATE doctors_slot_data SET is_available = 0 WHERE doctor_id = {doc_id} AND slot_datetime = '{new_slot_datetime}';"
+            self._execute_sql(occupy_new)
 
         return {"success": True, "message": f"Appointment rescheduled to {new_slot_datetime}."}

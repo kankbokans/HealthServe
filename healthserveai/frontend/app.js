@@ -357,7 +357,7 @@ async function loadActiveBookings() {
                         <p class="text-muted">Booking ID: #${escapeHtml(appt.id)} | Status: <span style="color: #10b981; font-weight:600;">${escapeHtml(appt.status)}</span></p>
                     </div>
                     <div class="booking-actions">
-                        <button class="btn btn-secondary" onclick="openRescheduleModal(${appt.id}, ${appt.doctor_id})">Reschedule</button>
+                        <button class="btn btn-secondary" onclick="openRescheduleModal(${appt.id}, ${appt.doctor_id}, '${escapeHtml(appt.patient_name)}')">Reschedule</button>
                         <button class="btn btn-danger" onclick="cancelAppointment(${appt.id})">Cancel</button>
                     </div>
                 `;
@@ -390,9 +390,10 @@ async function cancelAppointment(apptId) {
 }
 
 // Reschedule modal actions
-async function openRescheduleModal(apptId, docId) {
+async function openRescheduleModal(apptId, docId, patientName) {
     document.getElementById("reschedule-appt-id").value = apptId;
     document.getElementById("reschedule-doc-id").value = docId;
+    document.getElementById("reschedule-patient-name").value = patientName || "";
 
     const select = document.getElementById("reschedule-slot-select");
     select.innerHTML = `<option value="">Loading slots...</option>`;
@@ -430,8 +431,9 @@ async function submitReschedule(event) {
 
     const apptId = document.getElementById("reschedule-appt-id").value;
     const newSlot = document.getElementById("reschedule-slot-select").value;
+    const patientName = document.getElementById("reschedule-patient-name").value;
 
-    if (!apptId || !newSlot) return;
+    if (!apptId || !newSlot || !patientName) return;
 
     try {
         const response = await fetch("/api/appointments/update", {
@@ -439,7 +441,8 @@ async function submitReschedule(event) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 appointment_id: parseInt(apptId),
-                new_slot_datetime: newSlot
+                new_slot_datetime: newSlot,
+                patient_name: patientName
             })
         });
         const res = await response.json();

@@ -213,16 +213,17 @@ def cancel_appointment_by_id(appointment_id: int) -> str:
     except Exception as e:
         return f"Cancellation failed: {str(e)}"
 
-def reschedule_appointment_by_id(appointment_id: int, new_slot_datetime: str) -> str:
-    """Reschedules an appointment to a new slot datetime.
+def reschedule_appointment_by_id(appointment_id: int, new_slot_datetime: str, patient_name: str = None) -> str:
+    """Reschedules an appointment to a new slot datetime and optionally updates the patient name.
 
     Args:
         appointment_id: The integer ID of the appointment
         new_slot_datetime: Datetime slot formatted as YYYY-MM-DD HH:MM:SS
+        patient_name: Optional new patient name
     """
     try:
         db = DatabaseClient()
-        res = db.update_appointment(appointment_id=appointment_id, new_slot_datetime=new_slot_datetime)
+        res = db.update_appointment(appointment_id=appointment_id, new_slot_datetime=new_slot_datetime, patient_name=patient_name)
         return res.get("message", "Responded without message.")
     except Exception as e:
         return f"Rescheduling failed: {str(e)}"

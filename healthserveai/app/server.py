@@ -76,12 +76,22 @@ class CancelRequest(BaseModel):
 class UpdateRequest(BaseModel):
     appointment_id: int = Field(..., description="ID of the appointment to update")
     new_slot_datetime: str = Field(..., description="New slot datetime string formatted as YYYY-MM-DD HH:MM:SS")
+    patient_name: Optional[str] = Field(None, description="Updated name of the patient")
 
     @field_validator("new_slot_datetime")
     @classmethod
     def validate_new_slot_datetime(cls, v: str) -> str:
         if not re.match(r"^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$", v):
             raise ValueError("New slot datetime must be in format: 'YYYY-MM-DD HH:MM:SS'")
+        return v.strip()
+
+    @field_validator("patient_name")
+    @classmethod
+    def validate_patient_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not re.match(r"^[a-zA-Z\s\.\-]{2,100}$", v):
+            raise ValueError("Patient name must be between 2 and 100 characters and contain only letters, spaces, dots, or hyphens.")
         return v.strip()
 
 class ChatRequest(BaseModel):
@@ -200,7 +210,8 @@ def update_appointment(req: UpdateRequest):
     try:
         result = db_client.update_appointment(
             appointment_id=req.appointment_id,
-            new_slot_datetime=req.new_slot_datetime
+            new_slot_datetime=req.new_slot_datetime,
+            patient_name=req.patient_name
         )
         if not result.get("success"):
             raise HTTPException(status_code=400, detail=result.get("message"))
