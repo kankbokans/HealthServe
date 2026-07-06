@@ -21,6 +21,8 @@ from google.adk.models import Gemini
 from google.adk.workflow import Workflow, START, node
 from google.adk.events.event import Event
 from google.adk.agents.context import Context
+from google.adk.agents.callback_context import CallbackContext
+from google.adk.models.llm_request import LlmRequest
 from google.genai import types
 
 from app.app_utils.database import DatabaseClient
@@ -227,6 +229,54 @@ def reschedule_appointment_by_id(appointment_id: int, new_slot_datetime: str) ->
 
 # --- Intent Classifier & Agents ---
 
+# --- Conversational Memory Callback ---
+
+ALLOWED_AUTHORS = {
+    'user',
+    'general_agent',
+    'medical_expert',
+    'hospital_advisor',
+    'appointment_coordinator'
+}
+
+async def inject_history_callback(callback_context: CallbackContext, llm_request: LlmRequest) -> None:
+    history = []
+    message_events = []
+    last_text = None
+
+    # 1. Collect and de-duplicate consecutive user messages
+    for ev in callback_context.session.events:
+        if ev.author in ALLOWED_AUTHORS:
+            text_parts = []
+            if ev.content and ev.content.parts:
+                text_parts = [p.text for p in ev.content.parts if p.text]
+            elif ev.output and hasattr(ev.output, 'parts'):
+                text_parts = [p.text for p in ev.output.parts if p.text]
+
+            if text_parts:
+                curr_text = "".join(text_parts).strip()
+                if ev.author == 'user' and curr_text == last_text:
+                    continue
+                message_events.append((ev, curr_text))
+                last_text = curr_text
+
+    # 2. Skip the current turn's user message to prevent duplicating it
+    if message_events and message_events[-1][0].author == 'user':
+        message_events.pop()
+
+    # 3. Format history as GenAI Content objects
+    for ev, text in message_events:
+        role = 'user' if ev.author == 'user' else 'model'
+        history.append(types.Content(
+            role=role,
+            parts=[types.Part.from_text(text=text)]
+        ))
+
+    # 4. Prepend history turns to the active request
+    llm_request.contents = history + llm_request.contents
+
+# --- Intent Classifier & Agents ---
+
 classifier_agent = LlmAgent(
     name="classifier",
     model=Gemini(model="gemini-flash-latest"),
@@ -238,6 +288,7 @@ medical_expert_agent = LlmAgent(
     model=Gemini(model="gemini-flash-latest"),
     instruction="You are a grounded Medical Expert assistant. Answer the user's symptoms, sickness, or disease questions using the search_medical_knowledge tool. Cite the articles you find, and prioritize grounding your answer in guidelines from NIH, PubMed, WebMD, WHO, and Mayo Clinic.",
     tools=[search_medical_knowledge],
+    before_model_callback=inject_history_callback,
 )
 
 hospital_advisor_agent = LlmAgent(
@@ -245,6 +296,7 @@ hospital_advisor_agent = LlmAgent(
     model=Gemini(model="gemini-flash-latest"),
     instruction="You are a Hospital Advisor. Use your tools to find, list, and compare hospital facilities, ratings, ratings footnotes, diagnostics tests, and ambulance services. Help the user compare hospitals on ratings, types, and experience reviews.",
     tools=[list_hospitals_tool, get_hospital_reviews_tool, get_hospital_emergency_info],
+    before_model_callback=inject_history_callback,
 )
 
 appointment_coordinator_agent = LlmAgent(
@@ -252,12 +304,14 @@ appointment_coordinator_agent = LlmAgent(
     model=Gemini(model="gemini-flash-latest"),
     instruction="You are an Appointment Coordinator. You help patients find doctors, list slot times, book appointments, cancel bookings, or reschedule bookings. Cite ID numbers and slot times. Ground your answers strictly in the tool outputs. If the user wants to book, reschedule, or cancel but has not provided details (like doctor ID, slot datetime, or patient name), ask for them.",
     tools=[list_doctors, list_doctor_slots, book_appointment_by_name, cancel_appointment_by_id, reschedule_appointment_by_id],
+    before_model_callback=inject_history_callback,
 )
 
 general_agent = LlmAgent(
     name="general_agent",
     model=Gemini(model="gemini-flash-latest"),
     instruction="You are Healy, a friendly HealthServeAI assistant. Ground your answer in guiding the user on how they can navigate the system. Introduce yourself as Healy and mention they can compare hospitals, read patient reviews, chat about symptoms, and book doctor appointments using the tabs on the left.",
+    before_model_callback=inject_history_callback,
 )
 
 # --- Router Node ---
