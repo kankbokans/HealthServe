@@ -87,3 +87,10 @@ To set up your production infrastructure, run `agents-cli infra cicd`.
 ## Observability
 
 Built-in telemetry exports to Cloud Trace, BigQuery, and Cloud Logging.
+
+## Agent Tools & Medical Grounding
+
+The AI Assistant (Healy) is backed by dedicated specialized tools inside the ADK graph. For medical symptom and health inquiries:
+- **PubMed Literature Search**: Calls a custom Python tool function `search_medical_knowledge` in [agent.py](file:///C:/Users/kstan/Projects/HealthSenseAI/healthserveai/app/agent.py#L34) which queries the federal **NCBI Entrez E-utilities API** database.
+- **Reference Extraction**: Programmatically extracts matching medical paper titles, journals, publication years, and unique PubMed IDs (PMIDs).
+- **Grounding Priorities**: Combined with strict system instructions that direct the model to ground all suggestions in verified guidelines from **NIH, PubMed, WebMD, WHO, and Mayo Clinic**.
