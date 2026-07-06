@@ -90,15 +90,17 @@ class DatabaseClient:
         clean = re.sub(r"[^\w\s\.\,\-\@\:\/\#]", "", no_comments)
         return escape_string(clean).strip()
 
-    def get_hospitals(self, city: str = None, zip_code: str = None, hospital_type: str = None, rating: str = None) -> list[dict]:
+    def get_hospitals(self, city: str = None, zip_code: str = None, hospital_type: str = None, rating: str = None, state: str = None) -> list[dict]:
         """Fetches and compares hospitals based on filters."""
         query = "SELECT `Hospital Name`, `Hospital Type`, `Hospital Ownership`, `Hospital overall rating`, `Address`, `City`, `State`, `ZIP Code`, `Phone Number`, `Emergency Services`, `Mortality national comparison`, `Safety of care national comparison` FROM Hospital_Information_with_Lab_Tests WHERE 1=1"
 
         if city:
             query += f" AND `City` = '{self.sanitize_str(city)}'"
+        if state:
+            query += f" AND `State` = '{self.sanitize_str(state)}'"
         if zip_code:
             # ZIP codes are alphanumeric or numeric 5 digits
-            clean_zip = re.sub(r"[^\w\s\-]", "", zip_code)
+            clean_zip = re.sub(r"[^\w\s\]-]", "", zip_code)
             query += f" AND `ZIP Code` = '{clean_zip}'"
         if hospital_type:
             query += f" AND `Hospital Type` = '{self.sanitize_str(hospital_type)}'"

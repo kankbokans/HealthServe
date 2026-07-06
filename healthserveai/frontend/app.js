@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (savedTheme === "light") {
         document.body.classList.add("light-theme");
         const btn = document.getElementById("theme-toggle");
-        if (btn) btn.innerText = "🌙 Dark Mode";
+        if (btn) btn.innerText = "🌙";
     }
 
     loadDoctors();
@@ -28,11 +28,11 @@ function toggleTheme() {
 
     if (body.classList.contains("light-theme")) {
         body.classList.remove("light-theme");
-        btn.innerText = "☀️ Light Mode";
+        btn.innerText = "☀️";
         localStorage.setItem("theme", "dark");
     } else {
         body.classList.add("light-theme");
-        btn.innerText = "🌙 Dark Mode";
+        btn.innerText = "🌙";
         localStorage.setItem("theme", "light");
     }
 }
@@ -63,7 +63,7 @@ function switchTab(tabId) {
 async function loadHospitals(event) {
     if (event) event.preventDefault();
 
-    const city = document.getElementById("filter-city").value;
+    const state = document.getElementById("filter-state").value;
     const zipCode = document.getElementById("filter-zip").value;
     const type = document.getElementById("filter-type").value;
     const rating = document.getElementById("filter-rating").value;
@@ -72,7 +72,7 @@ async function loadHospitals(event) {
     tbody.innerHTML = `<tr><td colspan="8" class="text-center">Loading facilities...</td></tr>`;
 
     let url = `/api/hospitals?`;
-    if (city) url += `city=${encodeURIComponent(city)}&`;
+    if (state) url += `state=${encodeURIComponent(state)}&`;
     if (zipCode) url += `zip_code=${encodeURIComponent(zipCode)}&`;
     if (type) url += `hospital_type=${encodeURIComponent(type)}&`;
     if (rating) url += `rating=${encodeURIComponent(rating)}&`;

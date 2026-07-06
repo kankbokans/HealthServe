@@ -225,10 +225,10 @@ body {
 .tab-content {
     display: none;
     flex-grow: 1;
-    overflow-y: auto;
-    padding: 32px;
+    overflow: hidden;
+    padding: 24px 32px;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
 }
 
 .tab-content.active {
@@ -246,15 +246,19 @@ body {
 }
 
 /* Forms & Filters UI */
+.filter-panel {
+    padding: 16px 24px;
+}
+
 .filter-panel h3 {
-    margin-bottom: 16px;
-    font-size: 16px;
+    margin-bottom: 12px;
+    font-size: 15px;
     font-weight: 600;
 }
 
 .filter-form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
     align-items: flex-end;
     gap: 16px;
 }
@@ -278,7 +282,7 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     color: var(--text-primary);
-    padding: 10px 14px;
+    padding: 8px 12px;
     font-size: 14px;
     outline: none;
     transition: border-color 0.3s;
@@ -295,7 +299,7 @@ body {
     border-radius: 8px;
     font-size: 14px;
     font-weight: 600;
-    padding: 11px 24px;
+    padding: 9px 20px;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
     display: inline-flex;
@@ -339,6 +343,8 @@ body {
 
 /* Structured Data Tables */
 .results-table-container {
+    flex-grow: 1;
+    overflow-y: auto;
     overflow-x: auto;
     padding: 0;
 }
@@ -373,6 +379,8 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 20px;
+    flex-grow: 1;
+    overflow-y: auto;
 }
 
 .review-card {

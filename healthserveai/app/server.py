@@ -93,6 +93,7 @@ class ChatRequest(BaseModel):
 @app.get("/api/hospitals")
 def get_hospitals(
     city: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
     zip_code: Optional[str] = Query(None),
     hospital_type: Optional[str] = Query(None),
     rating: Optional[str] = Query(None)
@@ -102,9 +103,12 @@ def get_hospitals(
         # Perform additional parameter regex checks at route level
         if zip_code and not re.match(r"^\w{1,10}$", zip_code):
             raise HTTPException(status_code=400, detail="Invalid ZIP Code format.")
+        if state and not re.match(r"^[a-zA-Z]{1,10}$", state):
+            raise HTTPException(status_code=400, detail="Invalid state format.")
 
         hospitals = db_client.get_hospitals(
             city=city,
+            state=state,
             zip_code=zip_code,
             hospital_type=hospital_type,
             rating=rating
